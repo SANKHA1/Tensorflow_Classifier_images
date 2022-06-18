@@ -4,35 +4,52 @@ from tensorflow import keras
 from keras import layers
 from matplotlib import pyplot as plt
 from keras.callbacks import ModelCheckpoint
-inputs = keras.Input(shape=(784,))
+from sklearn.metrics import classification_report
+from sklearn.preprocessing import LabelBinarizer
+from model_class import Resnet50_tf
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.applications.resnet import ResNet50
+from keras.optimizer_experimental.sgd import SGD
+from keras.applications.resnet import preprocess_input
+from keras.preprocessing.image import ImageDataGenerator
+from keras.layers import Dense, Conv2D, Dropout,Activation,GlobalMaxPool2D,GlobalAvgPool2D,Input
 
-dense = layers.Dense(64, activation="relu")
-x = dense(inputs)
-
-x = layers.Dense(64, activation="relu")(x)
-outputs = layers.Dense(10)(x)
-filepath = 'model_checkpoint/file.hdf5'
-model = keras.Model(inputs=inputs, outputs=outputs, name="flowers")
-
-
-
-# X, y= keras.datasets.mnist.load_data()
+aug = ImageDataGenerator(preprocessing_function=preprocess_input)
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+x_train = np.expand_dims(x_train, axis=-1)
 
-x_train = x_train.reshape(60000, 784).astype("float32") / 255
-x_test = x_test.reshape(10000, 784).astype("float32") / 255
-callback =  ModelCheckpoint('model.{epoch:02d}-{val_loss:0.2f}.h5', verbose = 1,
-                                   monitor = "val_accuracy",mode='max',save_best_only=True)
-model.load_weights('model.06-0.14.h5')
-model.compile(
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    optimizer=keras.optimizers.Adam(lr=0.001),
-    metrics=["accuracy"],
-)
+x_train = np.repeat(x_train, 3, axis=-1)
 
-history = model.fit(x_train, y_train, batch_size=16, epochs=20, validation_data =(x_test, y_test) , callbacks=[callback])
+x_test = np.expand_dims(x_test, axis=-1)
+x_test = np.repeat(x_test, 3, axis=-1)
 
-test_scores = model.evaluate(x_test, y_test, verbose=2)
-print("Test loss:", test_scores[0])
-print("Test accuracy:", test_scores[1])
+y_train = tf.keras.utils.to_categorical(y_train, num_classes=10)
+y_test = tf.keras.utils.to_categorical(y_test , num_classes=10)
+pretrained = ResNet50(include_top=False,input_shape=(32,32,3), weights='imagenet',
+                                   classes=10)
+pretrained.trainable=False
+def create_model():
+    model = Sequential()
+    model.add(layers.Resizing(height=32, width=32, interpolation='nearest'))
+    model.add(pretrained)
+    model.add(Dense(10))
+    return model
 
+
+if __name__  ==  "__main__":
+    resnet_model = Resnet50_tf(10)
+    # resnet_model = create_model()
+    BATCH_SIZE = 8
+    N_EPOCHS = 2
+    resnet_model.pretrained.trainable = False
+    resnet_model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.001),
+                    loss=tf.keras.losses.CategoricalCrossentropy(),
+                    metrics=tf.keras.metrics.CategoricalAccuracy())
+
+    resnet_model.fit(aug.flow(x_train, y_train, BATCH_SIZE),validation_data=(x_test, y_test),
+                batch_size=BATCH_SIZE, epochs=N_EPOCHS,
+                steps_per_epoch=x_train.shape[0]//BATCH_SIZE)
+    resnet_model.summary()
+    print("Model Training Completed ------ >>>>>>>")
+    tf.saved_model.save(resnet_model, 'exported_model/Resnet50')
