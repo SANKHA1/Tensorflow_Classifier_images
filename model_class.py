@@ -13,6 +13,11 @@ from keras.models import Model
 from keras.layers import Dense, Conv2D, Dropout,Activation,GlobalMaxPool2D,GlobalAvgPool2D,Input
 from keras.applications.resnet import ResNet50
 
+
+
+
+
+
 class Resnet50_tf(Model):
     def __init__(self,num_classes,*args,  **kwargs):
         super(Resnet50_tf, self).__init__(**kwargs)
@@ -35,3 +40,5 @@ class Resnet50_tf(Model):
         x = self.dense_2(x)
         x = self.act_2(x)
         return x
+
+

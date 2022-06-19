@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
@@ -37,12 +38,17 @@ def create_model():
     return model
 
 
+
 if __name__  ==  "__main__":
-    resnet_model = Resnet50_tf(10)
-    # resnet_model = create_model()
+
+
+
+
+    # resnet_model = Resnet50_tf(10)
+    resnet_model = create_model()
     BATCH_SIZE = 8
     N_EPOCHS = 2
-    resnet_model.pretrained.trainable = False
+    # resnet_model.pretrained.trainable = False
     resnet_model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.001),
                     loss=tf.keras.losses.CategoricalCrossentropy(),
                     metrics=tf.keras.metrics.CategoricalAccuracy())
